@@ -1,102 +1,175 @@
-# Challenge 01: Oopsie - Buffer Overflow Basics
+# Oopsie
 
-**Difficulty**: ★☆☆☆☆ Beginner  
-**Binary**: `oopsie`  
-**Port**: 1337  
-**Category**: Memory Corruption / Stack Buffer Overflow
+## 🧩 Challenge Overview
 
-## Description
+**Category:** Pwn / Binary Exploitation
+**Difficulty:** Beginner
+**Target:** `oopsie`
 
-A simple program that asks for your name using the vulnerable `gets()` function. The buffer is only 32 bytes, but `gets()` has no bounds checking.
+Welcome to **Oopsie** — your first step into binary exploitation.
 
-## Source Code Analysis
+In this challenge, you'll encounter a classic **stack-based buffer overflow** caused by unsafe input handling.
 
-```c
-void vulnerable(void)
-{
-    char buffer[32];        // 32-byte buffer on stack
-    printf("Enter your name: ");
-    gets(buffer);           // NO BOUNDS CHECKING!
-    printf("Hello %s\n", buffer);
-}
+Your goal is to understand what happens when a program writes more data into a buffer than it was designed to hold, and use that knowledge to trigger the intended behavior of the challenge.
+
+---
+
+## 📁 Files
+
+The challenge directory contains:
+
+```text
+.
+├── oopsie
+├── main.c
+└── challenge.txt
 ```
 
-### Vulnerability
+### `main.c`
 
-- `buffer` is 32 bytes
-- `gets()` reads until newline/EOF with no limit
-- Excess input overwrites saved RBP (8 bytes) and saved RIP (8 bytes)
-- Total offset to RIP: 32 + 8 = 40 bytes
+The source code of the vulnerable program.
 
-## Binary Protections
+Take your time to read through it and understand:
+
+* Where user input is stored
+* How large the buffer is
+* How the input is read
+* What happens after the input is received
+
+### `oopsie`
+
+The compiled binary.
+
+This is the program you will ultimately be interacting with.
+
+### `challenge.txt`
+
+Contains the challenge description and objective.
+
+---
+
+## 🎯 Objective
+
+Your objective is to exploit the vulnerability in `oopsie` and trigger the behavior required by the challenge.
+
+The challenge is **not** about guessing the flag.
+
+Instead, investigate the program and figure out:
+
+1. Where the vulnerability is.
+2. Why the vulnerability exists.
+3. What happens when the buffer is overwritten.
+4. How the program behaves when you provide more input than expected.
+
+---
+
+## 🔍 Where Should I Start?
+
+Start with the source code:
 
 ```bash
-$ checksec --file=oopsie
-Arch:     amd64-64-little
-RELRO:    Partial RELRO
-Stack:    No canary found
-NX:       NX enabled
-PIE:      No PIE (0x400000)
+cat main.c
 ```
 
-- **No stack canary** (-fno-stack-protector)
-- **No PIE** (-no-pie) - addresses are static
-- **NX enabled** - stack not executable (default)
+Look carefully at how the program handles input.
 
-## Exploitation
-
-Since there's no `win()` function, the goal is to crash the program. The wrapper script (`run.sh`) detects a segmentation fault (exit code 139) and prints the flag.
-
-### Crash the Program
+You should then run the program normally:
 
 ```bash
-# Local
-python3 -c "print('A' * 50)" | ./oopsie
-
-# Remote
-python3 -c "print('A' * 50)" | nc localhost 1337
+./oopsie
 ```
 
-### Understanding the Stack Layout
+Try different inputs and observe how its behavior changes.
 
-```
-High Addresses
-|------------------------|
-| Saved RIP (8 bytes)    |  <-- Overwrite this to control execution
-|------------------------|
-| Saved RBP (8 bytes)    |  <-- Overwritten with padding
-|------------------------|
-| buffer[32] (32 bytes)  |  <-- gets() writes here
-|------------------------|
-Low Addresses
+For example:
+
+```bash
+./oopsie
 ```
 
-Offset to RIP = 32 (buffer) + 8 (RBP) = **40 bytes**
+Then provide a normal string and see what happens.
 
-### Verify with GDB
+---
+
+## 🧠 Things to Think About
+
+While investigating, ask yourself:
+
+* How big is the buffer?
+* How much data does the program allow you to write?
+* Is there any protection against writing past the end?
+* What is located around the buffer in memory?
+* What happens when you provide significantly more input?
+* Can you reproduce the crash consistently?
+
+You may find it useful to inspect the program with debugging tools such as **GDB**.
+
+---
+
+## 🛠️ Useful Tools
+
+You can use standard Linux tools while investigating the binary:
 
 ```bash
 gdb ./oopsie
-(gdb) run
-# Enter 50 'A's
-(gdb) info registers
-# Check RIP = 0x4141414141414141
 ```
 
-## Flag
+Some useful GDB commands to explore are:
 
-The flag is printed automatically when the program crashes (segfault).
+```text
+run
+break
+info registers
+x
+disassemble
+```
 
-## Key Concepts Learned
+You don't necessarily need to understand all of them immediately. Use them to gradually build a picture of what the program is doing.
 
-- Stack memory layout
-- Buffer boundaries and overflow
-- Segmentation faults from corrupted RIP
-- Why `gets()` is dangerous
-- Little-endian byte order
+---
 
-## Progressive Hints
+## 💡 Hint
 
-1. What happens with 33 characters? 40? 48? 60?
-2. Run in GDB, send 60 'A's, check `info registers`
-3. What's stored after `buffer` on the stack? How does the function know where to return?
+A buffer has a fixed size.
+
+What do you think happens when the program receives **more data than the buffer can hold**?
+
+Start there.
+
+---
+
+## 🚩 Flag Format
+
+If you successfully complete the challenge, the flag will follow this format:
+
+```text
+0XATTACK{...}
+```
+
+---
+
+## 📚 What You'll Learn
+
+By completing this challenge, you should gain an introduction to:
+
+* Stack memory
+* Local variables
+* Buffer overflows
+* Stack corruption
+* Program crashes
+* x86-64 registers
+* Basic GDB usage
+* Understanding vulnerable C programs
+
+This challenge is intended as a foundation for the more advanced pwn challenges that follow.
+
+---
+
+## ⚠️ Important
+
+This is a controlled educational environment.
+
+Only experiment against the provided challenge binary or the challenge server. Do not apply these techniques to systems you do not own or have permission to test.
+
+Good luck, and happy pwning! 🐧
+
